@@ -16,6 +16,7 @@ sudo ./start-frontend.sh
 
 .\Start-Frontend.ps1
 
+dotnet run --urls=http://127.0.0.1:5178
 
 # test api - http://localhost:40443/healthz
 
@@ -44,7 +45,9 @@ dotnet sln add ./nynjpa-plugin.csproj
 # panynj-plugin
 dotnet new webapi 
 dotnet new sln -n panynj-plugin-sln
-dotnet sln add ./panynj-plugin.csproj
+dotnet sln panynj-plugin-sln.sln add ./panynj-plugin/panynj-plugin.csproj
+dotnet sln remove ./panynj-plugin.csproj
+
 
 sudo dotnet build panynj-plugin.csproj
 sudo dotnet run

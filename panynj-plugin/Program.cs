@@ -103,6 +103,8 @@ app.MapGet("/FlightStatus/{airline_iata}/{flight_number}", async (string flight_
             string formatted_arrival = arrival_dt.ToString("MM/dd/yyyy HH:mm:ss tt").ToString();
 
             outputString = string.Format("{0} flight {1} is estimated to depart from terminal {7} gate {2} from {3} Airport at {4} and estimated to arrive at {5} Airport at {6}.", airline_iata, flight_number, departure_gate, departure_airport, formatted_departure, arrival_airport, formatted_arrival, departure_terminal);
+            Console.WriteLine(outputString);
+            outputString = firstFlight.ToString();
             return outputString;
         }
     }
