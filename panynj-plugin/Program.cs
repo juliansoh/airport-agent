@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 
 var builder = WebApplication.CreateBuilder(args);
-HttpClient client = new HttpClient();
+// HttpClient client = new HttpClient();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -74,45 +74,49 @@ app.MapGet("/FlightStatus/{airline_iata}/{flight_number}", async (string flight_
     string? access_key = app.Configuration["APIKeyAviationStack"];
     app.Logger.LogInformation("FlightStatus endpoint called with Flight Number: {0}{1} ", airline_iata, flight_number);
     var outputString = "Error";
-    try
+    using (var client = new HttpClient())
     {
-        var urlString = string.Format("https://api.aviationstack.com/v1/flights?access_key={0}&airline_iata={1}&flight_number={2}&limit=3", access_key, airline_iata, flight_number);
-        HttpResponseMessage response = await client.GetAsync(urlString);
-        response.EnsureSuccessStatusCode();
-
-        string responseBody = await response.Content.ReadAsStringAsync();
-
-        dynamic apiResponse = JsonConvert.DeserializeObject(responseBody);
-
-        if (apiResponse.data.Count > 0)
+        try
         {
-            dynamic firstFlight = apiResponse.data[0];
-            var propertyValue = firstFlight.propertyName;
-            Console.WriteLine($"First flight: {firstFlight}");
-            var departure_terminal = firstFlight.departure.terminal;
-            var departure_gate = firstFlight.departure.gate;
-            var departure_airport = firstFlight.departure.airport;
-            var ddtString = firstFlight.departure.estimated;
-            DateTime departure_dt = DateTime.Parse(ddtString.ToString()).ToLocalTime();
-            string formatted_departure = departure_dt.ToString("MM/dd/yyyy HH:mm:ss tt").ToString();
+            var urlString = string.Format("https://api.aviationstack.com/v1/flights?access_key={0}&airline_iata={1}&flight_number={2}&limit=3", access_key, airline_iata, flight_number);
+            using HttpResponseMessage response = await client.GetAsync(urlString);
+            response.EnsureSuccessStatusCode();
 
-            var arrival_gate = firstFlight.arrival.gate;
-            var arrival_airport = firstFlight.arrival.airport;
-            var adtString = firstFlight.arrival.estimated;
-            DateTime arrival_dt = DateTime.Parse(adtString.ToString()).ToLocalTime();
-            string formatted_arrival = arrival_dt.ToString("MM/dd/yyyy HH:mm:ss tt").ToString();
+            string responseBody = await response.Content.ReadAsStringAsync();
 
-            outputString = string.Format("{0} flight {1} is estimated to depart from terminal {7} gate {2} from {3} Airport at {4} and estimated to arrive at {5} Airport at {6}.", airline_iata, flight_number, departure_gate, departure_airport, formatted_departure, arrival_airport, formatted_arrival, departure_terminal);
-            Console.WriteLine(outputString);
-            outputString = firstFlight.ToString();
-            return outputString;
+            dynamic? apiResponse = JsonConvert.DeserializeObject(responseBody);
+
+            if (apiResponse!.data.Count > 0)
+            {
+                dynamic firstFlight = apiResponse.data[0];
+                var propertyValue = firstFlight.propertyName;
+                Console.WriteLine($"First flight: {firstFlight}");
+                var departure_terminal = firstFlight.departure.terminal;
+                var departure_gate = firstFlight.departure.gate;
+                var departure_airport = firstFlight.departure.airport;
+                var ddtString = firstFlight.departure.estimated;
+                DateTime departure_dt = DateTime.Parse(ddtString.ToString()).ToLocalTime();
+                string formatted_departure = departure_dt.ToString("MM/dd/yyyy HH:mm:ss tt").ToString();
+
+                var arrival_gate = firstFlight.arrival.gate;
+                var arrival_airport = firstFlight.arrival.airport;
+                var adtString = firstFlight.arrival.estimated;
+                DateTime arrival_dt = DateTime.Parse(adtString.ToString()).ToLocalTime();
+                string formatted_arrival = arrival_dt.ToString("MM/dd/yyyy HH:mm:ss tt").ToString();
+
+                outputString = string.Format("{0} flight {1} is estimated to depart from terminal {7} gate {2} from {3} Airport at {4} and estimated to arrive at {5} Airport at {6}.", airline_iata, flight_number, departure_gate, departure_airport, formatted_departure, arrival_airport, formatted_arrival, departure_terminal);
+                Console.WriteLine(outputString);
+                outputString = firstFlight.ToString();
+                return outputString;
+            }
+        }
+        catch (HttpRequestException e)
+        {
+            Console.WriteLine("\nException Caught!");
+            outputString = string.Format("Message :{0} ", e);
         }
     }
-    catch (HttpRequestException e)
-    {
-        Console.WriteLine("\nException Caught!");
-        outputString = string.Format("Message :{0} ", e);
-    }
+
     return outputString;
 
 
@@ -273,51 +277,5 @@ static double CalcTimeOfDayFactor()
 
     return TimeOfDayFactor;
 }
-
-// string FlightStatus(string airline, string flightNumber)
-// {
-//     string airlineUpper = airline.ToUpper();
-//     string flightNumberUpper = flightNumber.ToUpper();
-//     string flightStatus = "Flight status not set";
-
-//     switch (airlineUpper)
-//     {
-//         case "JETBLUE":
-//             if (flightNumberUpper == "61613")
-//             {
-//                 flightStatus = "JetBlue 61613, New York, JFK to Los Angeles, LAX, Scheduled departure 9:30 am, Scheduled arrival 12:37 pm";
-//             }
-//             break;        
-//         default:
-//             flightStatus = "Flight not found";
-//             break;
-//     }   
-
-//     return flightStatus;
-// }
-
-// app.MapGet("/FlightStatus/{airline}/{flightNumber}", (string airline, string flightNumber) =>
-// {   
-//     string flightStatus = FlightStatus(airline, flightNumber);
-//     app.Logger.LogInformation("Flight Status: {airline}, {flightNumber}, {flightStatus}", airline, flightNumber, flightStatus);
-//     return new { FlightStatus = flightStatus };   
-
-// })
-// .WithDescription("Returns the status for a flight when provided the airline and flight number")
-// .WithName("Flight Status")
-// .WithOpenApi();
-
-// app.MapGet("/EstimatedArrivalTime/{airline}/{flightNumber}", (string airline, string flightNumber) =>
-// {   
-//     string estArrivalTime = "ETA not set";
-//     estArrivalTime = TravelerTimeToAirport(airline, flightNumber);
-
-//     app.Logger.LogInformation("Estimated Arrival Time: {airline}, {flightNumber}, {EstimatedArrivalTime}", airline, flightNumber, estArrivalTime);
-//     return new { EstimatedArrivalTime = estArrivalTime };   
-
-// })
-// .WithDescription("Returns the Estimated Arrival Time for a traveler based on flight departure, TSA wait time and walk time to gate")
-// .WithName("EstimatedArrivalTime")
-// .WithOpenApi();
 
 
