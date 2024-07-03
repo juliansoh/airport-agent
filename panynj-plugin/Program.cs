@@ -1,9 +1,14 @@
+
 using Microsoft.OpenApi.Models;
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 // HttpClient client = new HttpClient();
@@ -37,36 +42,62 @@ app.UseStaticFiles();
 
 //app.UseHttpsRedirection();
 
-app.MapGet("/TSAWait/{airportCode}/{terminal}", (string airportCode, string terminal) =>
+app.MapGet("/SecurityTimes/{airportCode}", async (string airportCode) =>
 {
-    int waitTime = TSAWait(airportCode, terminal);
-    string waitTimeString = waitTime.ToString();
-
-    app.Logger.LogInformation("TSAWait endpoint called with airportCode: {airportCode} Terminal: {terminal} and wait time: {waitTime}", airportCode, terminal, waitTime);
-
-    string waitTimeMessage = $"TSA Wait time at {airportCode} Terminal {terminal} is {waitTimeString} minutes";
-    return new { WaitTime = waitTime };
-
+    string jsonFileSuffix = "SecurityTimes.json";
+    string blobContents = await GetBlobContents(airportCode, jsonFileSuffix);
+    return blobContents;
 })
-.WithDescription("Calculates the TSA wait time for an airport when provided a 3 digit code as a string")
-.WithName("TSA Wait Time")
+.WithDescription("Calculates the TSA Security time for an airport when provided a 3 digit code as a string")
+.WithName("Security TSA Wait Time")
 .WithOpenApi();
 
-app.MapGet("/WalkTime/{airportCode}", (string airportCode) =>
+app.MapGet("/TaxiWaitTimes/{airportCode}", async (string airportCode) =>
 {
-    int walkTime = WalkTime(airportCode);
 
-    app.Logger.LogInformation("Walk Time endpoint called with airportCode: {airportCode} and walk time: {walkTime}", airportCode, walkTime);
+    string jsonFileSuffix = "TaxiWaitTimes.json";
+    string blobContents = await GetBlobContents(airportCode, jsonFileSuffix);
+    return blobContents;
+})
+.WithDescription("Calculates the Average Wait  Time for taxi at terminals for an airport when provided a 3 digit code as a string")
+.WithName("Taxi Wait Time at Terminals")
+.WithOpenApi();
 
-    return new { WalkTime = walkTime };
+app.MapGet("/ParkingWaitTimes/{airportCode}", async (string airportCode) =>
+{
 
+    string jsonFileSuffix = "ParkingWaitTimes.json";
+    string blobContents = await GetBlobContents(airportCode, jsonFileSuffix);
+    return blobContents;
+})
+.WithDescription("Calculates the Average Wait of Parking spaces at Terminals for an airport when provided a 3 digit code as a string")
+.WithName("Parking Wait Time to Gates")
+.WithOpenApi();
+
+app.MapGet("/WalkTime/{airportCode}", async (string airportCode) =>
+{
+
+    string jsonFileSuffix = "WalkTimes.json";
+    string blobContents = await GetBlobContents(airportCode, jsonFileSuffix);
+    return blobContents;
 })
 .WithDescription("Calculates the Average Walk Time to Gates from Terminal Security Checkpoint for an airport when provided a 3 digit code as a string")
 .WithName("Walk Time to Gates")
 .WithOpenApi();
 
-// EXAMPLE FLIGHT REQUEST
-// https://api.aviationstack.com/v1/flights?access_key=[YOUR_ACCESS_KEY]&limit=10&airline_iata=AA&flight_number=76
+app.MapGet("/FlightTracker/{airportCode}", async (string airportCode) =>
+{
+
+    string jsonFileSuffix = "FlightTracker.json";
+    string blobContents = await GetBlobContents(airportCode, jsonFileSuffix);
+    return blobContents;
+})
+.WithDescription("Calculates the Average Walk Time to Gates from Terminal Security Checkpoint for an airport when provided a 3 digit code as a string")
+.WithName("Flight Tracker Info")
+.WithOpenApi();
+
+// EXAMPLE FLIGHT REQUESThttps://www.tsawaittimes.com/
+// https://api.aviationstack.com/v1/flights?access_key=38b6e3206fde528c672437dfd815c329&limit=10&airline_iata=AA&flight_number=76
 // Requests American Airlines Flight 76 - which is out of JFK en route to SFO
 app.MapGet("/FlightStatus/{airline_iata}/{flight_number}", async (string flight_number, string airline_iata) =>
 {
@@ -276,6 +307,47 @@ static double CalcTimeOfDayFactor()
     }
 
     return TimeOfDayFactor;
+}
+
+
+
+
+async Task<string> GetBlobContents(string airportCode, string jsonFileSuffix)
+{
+
+    // retrieve Azure Storage items from settings (in development, keys in secrets.json )
+    string? connectionString = app.Configuration["AzureBlobStorage:ConnectionString"];
+    string? containerName = app.Configuration["AzureBlobStorage:ContainerName"];
+    string upperAirportCode = airportCode.ToUpper();
+
+    // Create a BlobServiceClient
+    BlobServiceClient blobServiceClient = new BlobServiceClient(connectionString);
+
+    // Create a BlobContainerClient
+    BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+
+    // Create a BlobClient
+    string jsonFileName = upperAirportCode + jsonFileSuffix;
+    BlobClient blobClient = containerClient.GetBlobClient(jsonFileName);
+
+    // Check if the blob exists
+    if (await blobClient.ExistsAsync())
+    {
+        // Download the blob content
+        BlobDownloadResult downloadResult = await blobClient.DownloadContentAsync();
+        string blobContents = downloadResult.Content.ToString();
+
+        //app.Logger.LogInformation($"jsonFileName: {jsonFileName}");
+        app.Logger.LogInformation($"blobContents: {blobContents}");
+
+        return blobContents;
+    }
+    else
+    {
+        app.Logger.LogInformation($"Blob not found: {jsonFileName}");
+        return "{}";
+    }
+
 }
 
 
