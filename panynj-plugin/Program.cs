@@ -42,59 +42,7 @@ app.UseStaticFiles();
 
 //app.UseHttpsRedirection();
 
-app.MapGet("/SecurityTimes/{airportCode}", async (string airportCode) =>
-{
-    string jsonFileSuffix = "SecurityTimes.json";
-    string blobContents = await GetBlobContents(airportCode, jsonFileSuffix);
-    return blobContents;
-})
-.WithDescription("Calculates the TSA Security time for an airport when provided a 3 digit code as a string")
-.WithName("Security TSA Wait Time")
-.WithOpenApi();
 
-app.MapGet("/TaxiWaitTimes/{airportCode}", async (string airportCode) =>
-{
-
-    string jsonFileSuffix = "TaxiWaitTimes.json";
-    string blobContents = await GetBlobContents(airportCode, jsonFileSuffix);
-    return blobContents;
-})
-.WithDescription("Calculates the Average Wait  Time for taxi at terminals for an airport when provided a 3 digit code as a string")
-.WithName("Taxi Wait Time at Terminals")
-.WithOpenApi();
-
-app.MapGet("/ParkingWaitTimes/{airportCode}", async (string airportCode) =>
-{
-
-    string jsonFileSuffix = "ParkingWaitTimes.json";
-    string blobContents = await GetBlobContents(airportCode, jsonFileSuffix);
-    return blobContents;
-})
-.WithDescription("Calculates the Average Wait of Parking spaces at Terminals for an airport when provided a 3 digit code as a string")
-.WithName("Parking Wait Time to Gates")
-.WithOpenApi();
-
-app.MapGet("/WalkTime/{airportCode}", async (string airportCode) =>
-{
-
-    string jsonFileSuffix = "WalkTimes.json";
-    string blobContents = await GetBlobContents(airportCode, jsonFileSuffix);
-    return blobContents;
-})
-.WithDescription("Calculates the Average Walk Time to Gates from Terminal Security Checkpoint for an airport when provided a 3 digit code as a string")
-.WithName("Walk Time to Gates")
-.WithOpenApi();
-
-app.MapGet("/FlightTracker/{airportCode}", async (string airportCode) =>
-{
-
-    string jsonFileSuffix = "FlightTracker.json";
-    string blobContents = await GetBlobContents(airportCode, jsonFileSuffix);
-    return blobContents;
-})
-.WithDescription("Calculates the Average Walk Time to Gates from Terminal Security Checkpoint for an airport when provided a 3 digit code as a string")
-.WithName("Flight Tracker Info")
-.WithOpenApi();
 
 // EXAMPLE FLIGHT REQUESThttps://www.tsawaittimes.com/
 // https://api.aviationstack.com/v1/flights?access_key=38b6e3206fde528c672437dfd815c329&limit=10&airline_iata=AA&flight_number=76
